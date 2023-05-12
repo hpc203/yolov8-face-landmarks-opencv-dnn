@@ -22,7 +22,7 @@ private:
 	const int inpHeight = 640;
 	float confThreshold;
 	float nmsThreshold;
-	const int num_class = 1;  ///Ö»ÓĞÈËÁ³ÕâÒ»¸öÀà±ğ
+	const int num_class = 1;  ///åªæœ‰äººè„¸è¿™ä¸€ä¸ªç±»åˆ«
 	const int reg_max = 16;
 	Net net;
 	void softmax_(const float* x, float* y, int length);
@@ -157,7 +157,7 @@ void YOLOv8_face::generate_proposal(Mat out, vector<Rect>& boxes, vector<float>&
 				}
 				float cx = (j + 0.5f)*stride;
 				float cy = (i + 0.5f)*stride;
-				float xmin = max((cx - pred_ltrb[0] - padw)*ratiow, 0.f);  ///»¹Ô­»Øµ½Ô­Í¼
+				float xmin = max((cx - pred_ltrb[0] - padw)*ratiow, 0.f);  ///è¿˜åŸå›åˆ°åŸå›¾
 				float ymin = max((cy - pred_ltrb[1] - padh)*ratioh, 0.f);
 				float xmax = min((cx + pred_ltrb[2] - padw)*ratiow, float(imgw - 1));
 				float ymax = min((cy + pred_ltrb[3] - padh)*ratioh, float(imgh - 1));
@@ -168,9 +168,9 @@ void YOLOv8_face::generate_proposal(Mat out, vector<Rect>& boxes, vector<float>&
 				vector<Point> kpts(5);
 				for (int k = 0; k < 5; k++)
 				{
-					float x = ((ptr_kp[(k * 3)*area + index] * 2 + j)*stride - padw)*ratiow;  ///»¹Ô­»Øµ½Ô­Í¼
+					float x = ((ptr_kp[(k * 3)*area + index] * 2 + j)*stride - padw)*ratiow;  ///è¿˜åŸå›åˆ°åŸå›¾
 					float y = ((ptr_kp[(k * 3 + 1)*area + index] * 2 + i)*stride - padh)*ratioh;
-					///float pt_conf = ptr_kp[(k * 3 + 2)*area + index];
+					///float pt_conf = sigmoid_x(ptr_kp[(k * 3 + 2)*area + index]);
 					kpts[k] = Point(int(x), int(y));
 				}
 				landmarks.push_back(kpts);
