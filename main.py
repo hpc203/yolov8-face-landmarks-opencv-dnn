@@ -67,6 +67,8 @@ class YOLOv8_face:
         blob = cv2.dnn.blobFromImage(input_img)
         self.net.setInput(blob)
         outputs = self.net.forward(self.net.getUnconnectedOutLayersNames())
+        if isinstance(outputs, tuple):
+            outputs = list(outputs)
         if float(cv2.__version__[:3])>=4.7:
             outputs = [outputs[2], outputs[0], outputs[1]] ###opencv4.7需要这一步，opencv4.5不需要
         # Perform inference on the image
