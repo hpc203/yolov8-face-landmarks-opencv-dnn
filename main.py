@@ -22,14 +22,14 @@ class YOLOv8_face:
 
     def make_anchors(self, feats_hw, grid_cell_offset=0.5):
         """Generate anchors from features."""
-        anchor_points = []
+        anchor_points = {}
         for i, stride in enumerate(self.strides):
             h,w = feats_hw[i]
             x = np.arange(0, w) + grid_cell_offset  # shift x
             y = np.arange(0, h) + grid_cell_offset  # shift y
             sx, sy = np.meshgrid(x, y)
             # sy, sx = np.meshgrid(y, x)
-            anchor_points.append(np.stack((sx, sy), axis=-1).reshape(-1, 2))
+            anchor_points[stride] = np.stack((sx, sy), axis=-1).reshape(-1, 2)
         return anchor_points
 
     def softmax(self, x, axis=1):
@@ -67,31 +67,32 @@ class YOLOv8_face:
         blob = cv2.dnn.blobFromImage(input_img)
         self.net.setInput(blob)
         outputs = self.net.forward(self.net.getUnconnectedOutLayersNames())
-        if isinstance(outputs, tuple):
-            outputs = list(outputs)
-        if float(cv2.__version__[:3])>=4.7:
-            outputs = [outputs[2], outputs[0], outputs[1]] ###opencv4.7需要这一步，opencv4.5不需要
+        # if isinstance(outputs, tuple):
+        #     outputs = list(outputs)
+        # if float(cv2.__version__[:3])>=4.7:
+        #     outputs = [outputs[2], outputs[0], outputs[1]] ###opencv4.7需要这一步，opencv4.5不需要
         # Perform inference on the image
         det_bboxes, det_conf, det_classid, landmarks = self.post_process(outputs, scale_h, scale_w, padh, padw)
         return det_bboxes, det_conf, det_classid, landmarks
 
     def post_process(self, preds, scale_h, scale_w, padh, padw):
         bboxes, scores, landmarks = [], [], []
-        for i, (stride, anchors) in enumerate(zip(self.strides, self.anchors)):
-            preds[i] = preds[i].transpose((0, 2, 3, 1))
+        for i, pred in enumerate(preds):
+            stride = int(self.input_height/pred.shape[2])
+            pred = pred.transpose((0, 2, 3, 1))
             
-            box = preds[i][..., :self.reg_max * 4]
-            cls = 1 / (1 + np.exp(-preds[i][..., self.reg_max * 4:-15])).reshape((-1,1))
-            kpts = preds[i][..., -15:].reshape((-1,15)) ### x1,y1,score1, ..., x5,y5,score5
+            box = pred[..., :self.reg_max * 4]
+            cls = 1 / (1 + np.exp(-pred[..., self.reg_max * 4:-15])).reshape((-1,1))
+            kpts = pred[..., -15:].reshape((-1,15)) ### x1,y1,score1, ..., x5,y5,score5
 
             # tmp = box.reshape(self.feats_hw[i][0], self.feats_hw[i][1], 4, self.reg_max)
             tmp = box.reshape(-1, 4, self.reg_max)
             bbox_pred = self.softmax(tmp, axis=-1)
             bbox_pred = np.dot(bbox_pred, self.project).reshape((-1,4))
 
-            bbox = self.distance2bbox(anchors, bbox_pred, max_shape=(self.input_height, self.input_width)) * stride
-            kpts[:, 0::3] = (kpts[:, 0::3] * 2.0 + (anchors[:, 0].reshape((-1,1)) - 0.5)) * stride
-            kpts[:, 1::3] = (kpts[:, 1::3] * 2.0 + (anchors[:, 1].reshape((-1,1)) - 0.5)) * stride
+            bbox = self.distance2bbox(self.anchors[stride], bbox_pred, max_shape=(self.input_height, self.input_width)) * stride
+            kpts[:, 0::3] = (kpts[:, 0::3] * 2.0 + (self.anchors[stride][:, 0].reshape((-1,1)) - 0.5)) * stride
+            kpts[:, 1::3] = (kpts[:, 1::3] * 2.0 + (self.anchors[stride][:, 1].reshape((-1,1)) - 0.5)) * stride
             kpts[:, 2::3] = 1 / (1+np.exp(-kpts[:, 2::3]))
 
             bbox -= np.array([[padw, padh, padw, padh]])  ###合理使用广播法则
