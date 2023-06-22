@@ -188,6 +188,7 @@ void YOLOv8_face::detect(Mat& srcimg)
 	blobFromImage(dst, blob, 1 / 255.0, Size(this->inpWidth, this->inpHeight), Scalar(0, 0, 0), true, false);
 	this->net.setInput(blob);
 	vector<Mat> outs;
+	///net.enableWinograd(false);  ////如果是opencv4.7，那就需要加上这一行
 	this->net.forward(outs, this->net.getUnconnectedOutLayersNames());
 
 	/////generate proposals
