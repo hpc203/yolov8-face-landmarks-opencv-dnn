@@ -4,3 +4,5 @@
 
 训练源码是https://github.com/derronqi/yolov8-face
 如果想做车牌检测4个角点，那就把检测5个人脸关键点改成4个
+
+此外，添加了人脸质量评估模型fqa，需要结合人脸检测来使用，对应的程序是main_fqa.py和main_fqa.cpp
